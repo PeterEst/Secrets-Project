@@ -149,6 +149,7 @@ app.post("/register", (req,res)=>{
             res.redirect("/register");
         } else {
             passport.authenticate("local")(req,res, ()=>{
+                console.log("New Local User Created : UserName: ",req.body.username);
                 res.redirect("/secrets");
             });
         }
@@ -166,6 +167,7 @@ app.post("/login", (req,res)=>{
         } else {
             errMsg = "Email Or Password Are Incorrect.";
             passport.authenticate("local",{failureRedirect: '/login'})(req,res, ()=>{
+                console.log("Local User Signed In : UserName: ",req.body.username);
                 res.redirect('/secrets');
             });
         }

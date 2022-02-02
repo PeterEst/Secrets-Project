@@ -26,12 +26,14 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-mongoose.connect("mongodb://localhost:27017/userDB");
+mongoose.connect("mongodb+srv://admin-peter:test123@cluster0.a0f5b.mongodb.net/userDB");
 
 const userSchema = new mongoose.Schema({
     email: String,
     password: String,
-    googleId : String
+    googleId : String,
+    facebookId : String,
+    facebookName: String
 });
 
 userSchema.plugin(findOrCreate);
@@ -73,13 +75,28 @@ passport.use(new FacebookStrategy({
     callbackURL: "http://localhost:3000/auth/facebook/secrets"
   },
   (accessToken, refreshToken, profile, cb) => {
-    User.findOrCreate({ facebookId: profile.id }, function (err, user) {
-      return cb(err, user);
-    });
+        User.findOne({facebookId: profile._json.id}, (err, foundUser)=>{
+            if(err){
+                console.log(err);
+            } else{
+                if (foundUser === null){
+                    const user = new User({
+                        facebookId: profile._json.id,
+                        facebookName: profile._json.name
+                    });
+                    user.save();
+                    console.log("New User Created using Facebook: Facebook Id: ",profile._json.id,"\n\t\t\t\tFacebook Name: ",profile._json.name);
+                    return cb(err, foundUser);
+                } else {
+                    console.log("User Sign In Using Facebook: Facebook Id: ",profile._json.id,"\n\t\t\t\tFacebook Name: ",profile._json.name);
+                    return cb(err, foundUser);
+                }
+            }
+        }); 
   }
 ));
 
-app.get('/auth/facebook',passport.authenticate('facebook', {scope: ["profile","email"]}));
+app.get('/auth/facebook',passport.authenticate("facebook", {scope: "public_profile"}));
 
 app.get('/auth/facebook/secrets',passport.authenticate('facebook', { failureRedirect: '/login' }),
   (req, res)=> {
@@ -104,7 +121,6 @@ app.get("/login", (req,res)=>{
     if(req.isAuthenticated()){
         res.redirect("/secrets");
     } else {
-        // var context = req.session.context;
         res.render("login", {errMsg: errMsg});
     }
 });

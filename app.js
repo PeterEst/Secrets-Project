@@ -33,7 +33,8 @@ const userSchema = new mongoose.Schema({
     password: String,
     googleId : String,
     facebookId : String,
-    facebookName: String
+    facebookName: String,
+    secret: String
 });
 
 userSchema.plugin(findOrCreate);
@@ -131,7 +132,21 @@ app.get("/register", (req,res)=>{
 
 app.get("/secrets", (req,res)=>{
     if (req.isAuthenticated()){
-        res.render("secrets");
+        User.find({secret: {$ne: null}}, (err,usersWithSecret)=>{
+            if(err){
+                console.log(err);
+            } else {
+                res.render("secrets", {usersWithSecret: usersWithSecret});
+            }
+        })
+    } else {
+        res.redirect("/login");
+    }
+});
+
+app.get("/submit", (req,res)=>{
+    if (req.isAuthenticated()){
+        res.render("submit");
     } else {
         res.redirect("/login");
     }
@@ -172,6 +187,18 @@ app.post("/login", (req,res)=>{
             });
         }
     });
+});
+
+app.post("/submit", (req,res)=>{
+    const secret = req.body.secret;
+    User.findOneAndUpdate({_id: req.user.id}, {secret: secret} ,(err,docs)=>{
+        if(err){
+            console.log(err);
+        } else {
+            console.log("Secret Successfully Added!");
+            res.redirect("/secrets");
+        }
+    })
 });
 
 app.listen(3000, ()=>{
